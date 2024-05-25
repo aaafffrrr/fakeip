@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stripe Charge Integration</title>
+    <title>Stripe Payment Integration</title>
     <script src="https://js.stripe.com/v3/"></script>
 </head>
 <body>
-    <h1>Stripe Charge Integration</h1>
+    <h1>Stripe Payment Integration</h1>
     <form id="payment-form">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required><br><br>
@@ -28,17 +28,17 @@
         <label for="country">Country:</label>
         <input type="text" id="country" name="country" required><br><br>
         <div id="card-element"></div><br>
-        <button type="button" onclick="createCharge()">Create Charge</button>
+        <button type="button" onclick="createPaymentIntent()">Create Payment Intent</button>
     </form>
     <div id="result"></div>
 
     <script>
-        var stripe = Stripe('pk_test_51IBrFmCKUTYIL9IlhZgT4teYIyELwBZ1oj1Gs6hCSb5l1rZsIsmge1hBQNCtI1RMQIvaoXCgcxAD5h497BAVvu5200s62b7qe4');
+        var stripe = Stripe('your-publishable-key-here');
         var elements = stripe.elements();
         var cardElement = elements.create('card');
         cardElement.mount('#card-element');
 
-        async function createCharge() {
+        async function createPaymentIntent() {
             const name = document.getElementById('name').value;
             const email = document.getElementById('email').value;
             const amount = document.getElementById('amount').value;
@@ -49,7 +49,6 @@
             const zip = document.getElementById('zip').value;
             const country = document.getElementById('country').value;
 
-            // Fake IP and User-Agent data
             const fakeIp = "192.168.1.1";
             const fakeUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3";
 
@@ -74,7 +73,7 @@
                 return;
             }
 
-            const response = await fetch('/create-charge', {
+            const response = await fetch('/create-payment-intent', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -96,7 +95,17 @@
             });
 
             const result = await response.json();
-            document.getElementById('result').innerText = JSON.stringify(result, null, 2);
+            if (result.error) {
+                document.getElementById('result').innerText = result.error;
+            } else {
+                const { clientSecret } = result;
+                const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret);
+                if (confirmError) {
+                    document.getElementById('result').innerText = confirmError.message;
+                } else {
+                    document.getElementById('result').innerText = `PaymentIntent ${paymentIntent.id} created successfully with status: ${paymentIntent.status}`;
+                }
+            }
         }
     </script>
 </body>
