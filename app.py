@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import stripe
 import os
-from urllib.parse import quote as url_quote  # Ensure to use urllib.parse.quote if url_quote is needed
 
 app = Flask(__name__)
 
@@ -12,8 +11,8 @@ stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 def index():
     return render_template('index.html')
 
-@app.route('/create-charge', methods=['POST'])
-def create_charge():
+@app.route('/create-payment-intent', methods=['POST'])
+def create_payment_intent():
     try:
         data = request.json
         name = data['name']
@@ -42,36 +41,22 @@ def create_charge():
             }
         )
 
-        # Attach the payment method to the customer
-        stripe.PaymentMethod.attach(
-            payment_method_id,
-            customer=customer.id
-        )
-
-        # Set the default payment method on the customer
-        stripe.Customer.modify(
-            customer.id,
-            invoice_settings={
-                'default_payment_method': payment_method_id
-            }
-        )
-
-        # Create a charge
-        charge = stripe.Charge.create(
+        # Create a payment intent with the payment method and customer
+        payment_intent = stripe.PaymentIntent.create(
             amount=int(amount) * 100,  # Stripe expects the amount in cents
             currency=currency,
             customer=customer.id,
-            source=payment_method_id,
-            description="Test Charge",
+            payment_method=payment_method_id,
+            confirm=False,  # Do not confirm the payment intent yet
             metadata={
                 'ip_address': ip,
                 'user_agent': user_agent
-            }
+            },
+            setup_future_usage='off_session'  # Disable 3DS for future off-session payments
         )
 
         return jsonify({
-            'charge_id': charge['id'],
-            'status': charge['status']
+            'clientSecret': payment_intent.client_secret
         })
     except Exception as e:
         return jsonify(error=str(e)), 403
