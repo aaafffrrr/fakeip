@@ -25,9 +25,7 @@ def create_payment_intent():
         state = data['state']
         zip = data['zip']
         country = data['country']
-        ip = data['ip']
-        user_agent = data['user_agent']
-
+        
         # Create a customer with detailed billing information
         customer = stripe.Customer.create(
             name=name,
@@ -48,10 +46,6 @@ def create_payment_intent():
             customer=customer.id,
             payment_method=payment_method_id,
             confirm=False,  # Do not confirm the payment intent yet
-            metadata={
-                'ip_address': ip,
-                'user_agent': user_agent
-            },
             setup_future_usage='off_session'  # Disable 3DS for future off-session payments
         )
 
