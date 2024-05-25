@@ -4,54 +4,37 @@ import os
 
 app = Flask(__name__)
 
-# Set your Stripe API key from the environment variable
+# Set your Stripe secret key
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/create-payment-intent', methods=['POST'])
-def create_payment_intent():
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
     try:
         data = request.json
-        name = data['name']
-        email = data['email']
         amount = data['amount']
-        currency = data['currency']
-        payment_method_id = data['payment_method_id']
-        address = data['address']
-        city = data['city']
-        state = data['state']
-        zip = data['zip']
-        country = data['country']
         
-        # Create a customer with detailed billing information
-        customer = stripe.Customer.create(
-            name=name,
-            email=email,
-            address={
-                'line1': address,
-                'city': city,
-                'state': state,
-                'postal_code': zip,
-                'country': country
-            }
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'Test Product',
+                    },
+                    'unit_amount': int(amount),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url='https://your-domain.com/success',
+            cancel_url='https://your-domain.com/cancel',
         )
-
-        # Create a payment intent with the payment method and customer
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(amount) * 100,  # Stripe expects the amount in cents
-            currency=currency,
-            customer=customer.id,
-            payment_method=payment_method_id,
-            confirm=False,  # Do not confirm the payment intent yet
-            setup_future_usage='off_session'  # Disable 3DS for future off-session payments
-        )
-
-        return jsonify({
-            'clientSecret': payment_intent.client_secret
-        })
+        
+        return jsonify({'id': checkout_session.id})
     except Exception as e:
         return jsonify(error=str(e)), 403
 
