@@ -33,7 +33,7 @@
     <div id="result"></div>
 
     <script>
-        var stripe = Stripe('your-publishable-key-here');
+        var stripe = Stripe('pk_test_51IBrFmCKUTYIL9IlhZgT4teYIyELwBZ1oj1Gs6hCSb5l1rZsIsmge1hBQNCtI1RMQIvaoXCgcxAD5h497BAVvu5200s62b7qe4');
         var elements = stripe.elements();
         var cardElement = elements.create('card');
         cardElement.mount('#card-element');
